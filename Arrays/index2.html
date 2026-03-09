@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I LOVE YOU · until my last breath</title>
+    <!-- Fonts: elegant script + clean sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Poppins:wght@300;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0A3323; /* dark green */
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Poppins', sans-serif;
+        }
+        .canvas-wrapper {
+            padding: 20px;
+            background: rgba(242, 224, 210, 0.2); /* oat milk transparent */
+            backdrop-filter: blur(6px);
+            border-radius: 60px;
+            box-shadow: 0 30px 40px rgba(0,0,0,0.5), 0 0 0 3px #F2AFBC, 0 0 0 7px #9E182B;
+            position: relative;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            max-width: 900px;
+            height: auto;
+            border-radius: 40px;
+            box-shadow: 0 20px 30px #0A3323;
+            background: transparent;
+        }
+        .sub {
+            text-align: center;
+            margin-top: 20px;
+            color: #F7F4D5; /* beige */
+            font-size: 1.2rem;
+            letter-spacing: 3px;
+            text-shadow: 2px 2px 0 #9E182B, 4px 4px 0 #0A3323;
+        }
+        .sub span {
+            display: inline-block;
+            animation: softPulse 2.2s infinite;
+        }
+        @keyframes softPulse {
+            0% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.08); text-shadow: 0 0 20px #F2AFBC; }
+        }
+
+        /* proposal card – inspired by proposeme.netlify.app, using palette */
+        .proposal-card {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(247, 244, 213, 0.95); /* beige with opacity */
+            backdrop-filter: blur(12px);
+            padding: 28px 48px;
+            border-radius: 70px;
+            box-shadow: 0 20px 40px rgba(10, 51, 35, 0.6), 0 0 0 3px #F2AFBC inset;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s ease, transform 0.3s ease;
+            pointer-events: none;
+            z-index: 20;
+            border: none;
+        }
+        .proposal-card.show {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(-50%) scale(1);
+        }
+        .proposal-card h2 {
+            font-family: 'Dancing Script', cursive;
+            font-size: 52px;
+            margin: 0 0 8px 0;
+            color: #9E182B; /* red wine */
+            text-shadow: 2px 2px 0 #F2AFBC;
+            line-height: 1.2;
+        }
+        .proposal-card .sub {
+            font-size: 18px;
+            font-weight: 300;
+            color: #105666; /* midnight green */
+            margin-bottom: 24px;
+            text-shadow: none;
+        }
+        .button-group {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+        }
+        .proposal-btn {
+            border: none;
+            padding: 14px 40px;
+            font-size: 24px;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.15s;
+            box-shadow: 0 6px 0 #0A3323;
+            font-family: 'Poppins', sans-serif;
+            letter-spacing: 1px;
+        }
+        .proposal-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #0A3323;
+        }
+        .btn-yes {
+            background-color: #F2AFBC; /* blush */
+            color: #0A3323;
+        }
+        .btn-no {
+            background-color: #D3968C; /* rosy brown */
+            color: #F7F4D5;
+        }
+        .btn-no:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* eternal message overlay – appears after yes */
+        .eternal-message {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(10, 51, 35, 0.8); /* dark green translucent */
+            backdrop-filter: blur(8px);
+            border-radius: 40px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1.2s ease;
+            z-index: 30;
+            padding: 20px;
+            text-align: center;
+        }
+        .eternal-message.show {
+            opacity: 1;
+            pointer-events: none;
+        }
+        .eternal-text {
+            font-family: 'Dancing Script', cursive;
+            font-size: 64px;
+            color: #F9CBD6; /* rose quartz */
+            text-shadow: 0 0 20px #9E182B, 0 0 40px #F2AFBC;
+            margin-bottom: 20px;
+            line-height: 1.3;
+            animation: glowPulse 2s infinite;
+        }
+        .eternal-sub {
+            font-size: 24px;
+            color: #F7F4D5; /* beige */
+            opacity: 0.9;
+            font-weight: 300;
+            letter-spacing: 4px;
+        }
+        @keyframes glowPulse {
+            0% { text-shadow: 0 0 20px #9E182B, 0 0 40px #F2AFBC; }
+            50% { text-shadow: 0 0 40px #9E182B, 0 0 80px #F2AFBC, 0 0 120px #F9CBD6; }
+            100% { text-shadow: 0 0 20px #9E182B, 0 0 40px #F2AFBC; }
+        }
+
+        /* small hint */
+        .hint {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            color: #F2E0D2;
+            font-size: 13px;
+            background: rgba(0,0,0,0.3);
+            padding: 6px 12px;
+            border-radius: 30px;
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body>
+<div class="canvas-wrapper">
+    <canvas id="loveCanvas" width="800" height="600"></canvas>
+
+    <!-- proposal card (clean UI) -->
+    <div class="proposal-card" id="proposalCard">
+        <h2>Will you be mine?</h2>
+        <div class="sub">❤️ forever starts now ❤️</div>
+        <div class="button-group">
+            <button class="proposal-btn btn-yes" id="yesBtn">Yes</button>
+            <button class="proposal-btn btn-no" id="noBtn">No</button>
+        </div>
+    </div>
+
+    <!-- eternal message (hidden initially) -->
+    <div class="eternal-message" id="eternalMessage">
+        <div class="eternal-text">I love you<br>until my last breath</div>
+        <div class="eternal-sub">∞</div>
+    </div>
+
+    <div class="sub">
+        <span>🌹</span>  every letter blooms  <span>🌹</span>
+    </div>
+</div>
+<div class="hint">✨ click anywhere · from palette to eternity ✨</div>
+
+<script>
+(function() {
+    const canvas = document.getElementById('loveCanvas');
+    const ctx = canvas.getContext('2d');
+    const proposalCard = document.getElementById('proposalCard');
+    const eternalMessage = document.getElementById('eternalMessage');
+    const yesBtn = document.getElementById('yesBtn');
+    const noBtn = document.getElementById('noBtn');
+
+    // ---------- exact palette from your images ----------
+    const palette = {
+        darkGreen: '#0A3323',
+        mossGreen: '#839958',
+        beige: '#F7F4D5',
+        rosyBrown: '#D3968C',
+        midnightGreen: '#105666',
+        roseQuartz: '#F9CBD6',
+        blush: '#F2AFBC',
+        redWine: '#9E182B',
+        oatMilk: '#F2E0D2'
+    };
+
+    function colorWithAlpha(hex, alpha) {
+        const r = parseInt(hex.slice(1,3), 16);
+        const g = parseInt(hex.slice(3,5), 16);
+        const b = parseInt(hex.slice(5,7), 16);
+        return `rgba(${r},${g},${b},${alpha})`;
+    }
+
+    // ---------- typing states (I LOVE YOU) ----------
+    const fullText = { top: "I", main: "LOVE", bottom: "YOU" };
+    let progress = { top: 0, main: 0, bottom: 0 };
+    let state = 'top';               // 'top' → 'main' → 'bottom' → 'done'
+    let stateTimer = 0;
+    const typingSpeed = 3.5;          // chars per second
+
+    // ---------- rose & yes flag ----------
+    let roseActive = false;
+    let rosePhase = 0.0;
+    const fadeSpeed = 2.2;
+    let yesClicked = false;           // becomes true after Yes
+
+    // ---------- floating hearts (background ambiance) ----------
+    const floatingHearts = [];
+    const HEART_COUNT = 25;
+
+    class FloatingHeart {
+        constructor() {
+            this.reset();
+        }
+        reset() {
+            this.x = Math.random() * 800;
+            this.y = Math.random() * 600;
+            this.vx = (Math.random() - 0.5) * 18;
+            this.vy = (Math.random() - 0.5) * 12;
+            this.size = 4 + Math.random() * 14;
+            this.opacity = 0.1 + Math.random() * 0.3;
+            this.color = Math.random() > 0.5 ? colorWithAlpha(palette.blush, this.opacity) : colorWithAlpha(palette.roseQuartz, this.opacity);
+            this.pulse = Math.random() * Math.PI * 2;
+        }
+        update(dt) {
+            this.x += this.vx * dt;
+            this.y += this.vy * dt;
+            this.pulse += dt * 2;
+            if (this.x < -60) this.x = 860;
+            if (this.x > 860) this.x = -60;
+            if (this.y < -60) this.y = 660;
+            if (this.y > 660) this.y = -60;
+        }
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.scale(1 + Math.sin(this.pulse) * 0.1, 1 + Math.sin(this.pulse) * 0.1);
+            ctx.globalAlpha = this.opacity * (0.8 + 0.2 * Math.sin(this.pulse));
+            ctx.fillStyle = this.color;
+            ctx.shadowColor = colorWithAlpha(palette.redWine, 0.2);
+            ctx.shadowBlur = 10;
+            // heart shape
+            ctx.beginPath();
+            ctx.moveTo(0, this.size * 0.25);
+            ctx.bezierCurveTo(-this.size * 0.5, -this.size * 0.25, -this.size * 0.25, -this.size * 0.6, 0, -this.size * 0.4);
+            ctx.bezierCurveTo(this.size * 0.25, -this.size * 0.6, this.size * 0.5, -this.size * 0.25, 0, this.size * 0.25);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    for (let i = 0; i < HEART_COUNT; i++) floatingHearts.push(new FloatingHeart());
+
+    // ---------- particle system (explosions) ----------
+    const particles = [];
+
+    function createParticleExplosion(x, y, countMultiplier = 1.0) {
+        const count = Math.floor((12 + Math.random() * 12) * countMultiplier);
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 50 + Math.random() * 120;
+            const colors = [palette.blush, palette.roseQuartz, palette.rosyBrown, palette.redWine];
+            const col = colors[Math.floor(Math.random() * colors.length)];
+            particles.push({
+                x: x + (Math.random() - 0.5) * 30,
+                y: y + (Math.random() - 0.5) * 30,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                size: 2 + Math.random() * 7,
+                color: colorWithAlpha(col, 1),
+                life: 1.0,
+                decay: 0.3 + Math.random() * 0.5
+            });
+        }
+    }
+
+    function updateParticles(dt) {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.vy += 220 * dt; // gravity
+            p.life -= p.decay * dt;
+            if (p.life <= 0) particles.splice(i, 1);
+        }
+    }
+
+    function drawParticles() {
+        for (const p of particles) {
+            ctx.save();
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.shadowColor = colorWithAlpha(palette.redWine, 0.4);
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    // ---------- eternal glowing particles (after yes) ----------
+    const eternalParticles = [];
+    const ETERNAL_COUNT = 80;
+
+    for (let i = 0; i < ETERNAL_COUNT; i++) {
+        eternalParticles.push({
+            x: Math.random() * 800,
+            y: Math.random() * 600,
+            vx: (Math.random() - 0.5) * 10,
+            vy: -Math.random() * 30 - 10,  // rise slowly
+            size: 1 + Math.random() * 4,
+            opacity: 0.3 + Math.random() * 0.7,
+            color: Math.random() > 0.5 ? palette.roseQuartz : palette.blush,
+            phase: Math.random() * Math.PI * 2
+        });
+    }
+
+    function updateEternalParticles(dt) {
+        for (let p of eternalParticles) {
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.phase += dt * 3;
+            if (p.y < -20) {
+                p.y = 620;
+                p.x = Math.random() * 800;
+            }
+            if (p.x < -20) p.x = 820;
+            if (p.x > 820) p.x = -20;
+        }
+    }
+
+    function drawEternalParticles() {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        for (let p of eternalParticles) {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size + Math.sin(p.phase) * 1, 0, Math.PI * 2);
+            ctx.fillStyle = colorWithAlpha(p.color, p.opacity * 0.6);
+            ctx.shadowColor = palette.redWine;
+            ctx.shadowBlur = 15;
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    // ---------- wave‑distorted text (organic feel) ----------
+    function drawTextSegment(text, x, y, fontSize, time) {
+        if (!text) return;
+        ctx.save();
+        ctx.font = `700 ${fontSize}px 'Dancing Script', cursive`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const textWidth = ctx.measureText(text).width;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x - textWidth/2 - 15, y - fontSize/2 - 15, textWidth + 30, fontSize + 30);
+        ctx.clip();
+
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const charWidth = ctx.measureText(char).width;
+            const charX = x - textWidth/2 + ctx.measureText(text.substring(0, i)).width + charWidth/2;
+
+            const waveY = Math.sin(time * 2.5 + i * 1.2) * 8 + Math.cos(time * 1.8 + i) * 4;
+            const waveX = Math.cos(time * 2.0 + i * 0.9) * 5 + Math.sin(time * 1.5 + i) * 3;
+
+            ctx.save();
+            ctx.translate(charX + waveX, y + waveY);
+            ctx.shadowColor = colorWithAlpha(palette.redWine, 0.6);
+            ctx.shadowBlur = 18 + Math.sin(time * 3 + i) * 6;
+            ctx.fillStyle = palette.rosyBrown;
+            ctx.fillText(char, 0, 0);
+            ctx.restore();
+        }
+        ctx.restore();
+        ctx.restore();
+    }
+
+    // ---------- corner flowers (using palette) ----------
+    function drawSmallFlower(x, y, size, primary, secondary, petalCount = 6) {
+        ctx.save();
+        ctx.translate(x, y);
+        for (let i = 0; i < petalCount; i++) {
+            let angle = (i / petalCount) * Math.PI * 2;
+            ctx.save();
+            ctx.rotate(angle);
+            ctx.beginPath();
+            ctx.ellipse(size * 0.5, 0, size * 0.5, size * 0.25, 0, 0, Math.PI * 2);
+            ctx.fillStyle = i % 2 === 0 ? primary : secondary;
+            ctx.shadowColor = palette.darkGreen;
+            ctx.shadowBlur = 12;
+            ctx.shadowOffsetY = 2;
+            ctx.fill();
+            ctx.restore();
+        }
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.3, 0, 2 * Math.PI);
+        ctx.fillStyle = palette.oatMilk;
+        ctx.shadowBlur = 16;
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function drawCornerFlowers() {
+        ctx.save();
+        // top left
+        drawSmallFlower(70, 70, 24, palette.blush, palette.roseQuartz, 7);
+        drawSmallFlower(120, 120, 20, palette.roseQuartz, palette.blush, 6);
+        drawSmallFlower(40, 140, 18, palette.redWine, palette.blush, 8);
+        // top right
+        drawSmallFlower(740, 60, 28, palette.roseQuartz, palette.blush, 7);
+        drawSmallFlower(680, 120, 22, palette.blush, palette.roseQuartz, 6);
+        drawSmallFlower(760, 140, 16, palette.redWine, palette.blush, 8);
+        // bottom left
+        drawSmallFlower(60, 540, 26, palette.blush, palette.roseQuartz, 7);
+        drawSmallFlower(120, 500, 24, palette.roseQuartz, palette.blush, 6);
+        drawSmallFlower(40, 480, 18, palette.redWine, palette.blush, 8);
+        // bottom right
+        drawSmallFlower(740, 550, 30, palette.roseQuartz, palette.blush, 7);
+        drawSmallFlower(670, 520, 22, palette.blush, palette.roseQuartz, 6);
+        drawSmallFlower(760, 480, 20, palette.redWine, palette.blush, 8);
+        ctx.restore();
+    }
+
+    // big romantic rose (center)
+    function drawBigRose(x, y, baseSize, opacity, time) {
+        ctx.save();
+        ctx.globalAlpha = opacity;
+        ctx.shadowColor = palette.darkGreen;
+        ctx.shadowBlur = 35;
+        ctx.shadowOffsetY = 5;
+
+        for (let i = 0; i < 6; i++) {
+            let angle = (i / 6) * Math.PI * 2 + Math.sin(time * 0.5 + i) * 0.05;
+            ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+            ctx.beginPath(); ctx.ellipse(baseSize * 0.5, 0, baseSize * 0.45, baseSize * 0.3, 0, 0, Math.PI * 2);
+            ctx.fillStyle = palette.redWine; ctx.fill(); ctx.restore();
+        }
+        for (let i = 0; i < 10; i++) {
+            let angle = (i / 10) * Math.PI * 2 + 0.3 + Math.sin(time * 0.7 + i) * 0.05;
+            ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+            ctx.beginPath(); ctx.ellipse(baseSize * 0.75, 0, baseSize * 0.6, baseSize * 0.35, 0, 0, Math.PI * 2);
+            ctx.fillStyle = palette.blush; ctx.fill(); ctx.restore();
+        }
+        for (let i = 0; i < 14; i++) {
+            let angle = (i / 14) * Math.PI * 2 + 0.6 + Math.sin(time * 0.9 + i) * 0.05;
+            ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+            ctx.beginPath(); ctx.ellipse(baseSize * 1.1, 0, baseSize * 0.8, baseSize * 0.4, 0, 0, Math.PI * 2);
+            ctx.fillStyle = palette.roseQuartz; ctx.fill(); ctx.restore();
+        }
+        ctx.beginPath(); ctx.arc(x, y, baseSize * 0.4, 0, 2 * Math.PI);
+        ctx.fillStyle = palette.oatMilk; ctx.fill();
+        ctx.fillStyle = palette.rosyBrown;
+        ctx.shadowBlur = 20;
+        for (let d = 0; d < 8; d++) {
+            let a = (d / 8) * Math.PI * 2 + time * 0.2;
+            let dx = x + Math.cos(a) * baseSize * 0.3;
+            let dy = y + Math.sin(a) * baseSize * 0.25;
+            ctx.beginPath(); ctx.arc(dx, dy, baseSize * 0.1, 0, 2 * Math.PI); ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    // background (dynamic – darkens after yes)
+    function drawBackground(time) {
+        let grad;
+        if (!yesClicked) {
+            grad = ctx.createLinearGradient(0, 0, 0, 600);
+            grad.addColorStop(0, palette.oatMilk);
+            grad.addColorStop(1, palette.beige);
+        } else {
+            // after yes, deeper green
+            grad = ctx.createLinearGradient(0, 0, 0, 600);
+            grad.addColorStop(0, '#1a2f28');
+            grad.addColorStop(1, palette.darkGreen);
+        }
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 800, 600);
+
+        // soft vignette
+        ctx.fillStyle = 'rgba(0,0,0,0.05)';
+        ctx.fillRect(0, 0, 800, 600);
+    }
+
+    // ---------- typing update ----------
+    function updateTyping(dt, time, cx, cy) {
+        const prevTop = progress.top;
+        const prevMain = progress.main;
+        const prevBottom = progress.bottom;
+
+        stateTimer += dt;
+        if (state === 'top') {
+            progress.top = Math.min(fullText.top.length, Math.floor(stateTimer * typingSpeed));
+            if (progress.top > prevTop && progress.top > 0) {
+                createParticleExplosion(cx, cy - 70);
+            }
+            if (progress.top >= fullText.top.length) {
+                state = 'main';
+                stateTimer = 0;
+            }
+        } else if (state === 'main') {
+            progress.main = Math.min(fullText.main.length, Math.floor(stateTimer * typingSpeed));
+            if (progress.main > prevMain && progress.main > 0) {
+                const charX = cx - 80 + (progress.main - 0.5) * 50;
+                createParticleExplosion(charX, cy);
+            }
+            if (progress.main >= fullText.main.length) {
+                state = 'bottom';
+                stateTimer = 0;
+            }
+        } else if (state === 'bottom') {
+            progress.bottom = Math.min(fullText.bottom.length, Math.floor(stateTimer * typingSpeed));
+            if (progress.bottom > prevBottom && progress.bottom > 0) {
+                createParticleExplosion(cx, cy + 80);
+            }
+            if (progress.bottom >= fullText.bottom.length) {
+                state = 'done';
+                stateTimer = 0;
+                // show proposal card (only if not yet clicked yes)
+                if (!yesClicked) proposalCard.classList.add('show');
+            }
+        }
+    }
+
+    // ---------- button handlers ----------
+    yesBtn.addEventListener('click', () => {
+        yesClicked = true;
+        proposalCard.classList.remove('show');
+        eternalMessage.classList.add('show');
+
+        // massive explosion of joy
+        for (let i = 0; i < 30; i++) {
+            setTimeout(() => {
+                createParticleExplosion(400 + (Math.random()-0.5)*300, 300 + (Math.random()-0.5)*200, 2.5);
+            }, i * 20);
+        }
+
+        yesBtn.textContent = '💖';
+        noBtn.disabled = true;
+        noBtn.style.opacity = '0.3';
+
+        // add a bunch of floating hearts
+        for (let i = 0; i < 20; i++) floatingHearts.push(new FloatingHeart());
+    });
+
+    noBtn.addEventListener('click', () => {
+        noBtn.textContent = '😢 really?';
+        noBtn.style.backgroundColor = palette.roseQuartz;
+        noBtn.style.color = palette.darkGreen;
+        createParticleExplosion(400, 300, 0.8);
+    });
+
+    // click on canvas spawns hearts
+    canvas.addEventListener('pointerdown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (800/rect.width);
+        const y = (e.clientY - rect.top) * (600/rect.height);
+        for (let i = 0; i < 6; i++) createParticleExplosion(x, y);
+    });
+
+    // ---------- animation loop ----------
+    let lastTime = performance.now() / 1000;
+    function animate(now) {
+        const t = now / 1000;
+        const dt = Math.min(0.05, t - lastTime);
+        lastTime = t;
+
+        const cx = 400, cy = 280;
+
+        updateTyping(dt, t, cx, cy);
+
+        // update floating hearts
+        for (let heart of floatingHearts) heart.update(dt);
+
+        // update particles
+        updateParticles(dt);
+
+        // if yesClicked, update eternal particles
+        if (yesClicked) {
+            updateEternalParticles(dt);
+        }
+
+        // draw everything
+        drawBackground(t);
+
+        // floating hearts (background)
+        for (let heart of floatingHearts) heart.draw();
+
+        // corner flowers (only if not yesClicked, to keep focus)
+        if (!yesClicked) drawCornerFlowers();
+
+        // text segments (faint after yes)
+        if (!yesClicked) {
+            if (progress.top > 0) drawTextSegment(fullText.top.slice(0, progress.top), cx, cy - 70, 44, t);
+            if (progress.main > 0) drawTextSegment(fullText.main.slice(0, progress.main), cx, cy, 90, t);
+            if (progress.bottom > 0) drawTextSegment(fullText.bottom.slice(0, progress.bottom), cx, cy + 80, 44, t);
+        } else {
+            // very faint ghost text
+            ctx.globalAlpha = 0.15;
+            if (progress.top > 0) drawTextSegment(fullText.top.slice(0, progress.top), cx, cy - 70, 44, t);
+            if (progress.main > 0) drawTextSegment(fullText.main.slice(0, progress.main), cx, cy, 90, t);
+            if (progress.bottom > 0) drawTextSegment(fullText.bottom.slice(0, progress.bottom), cx, cy + 80, 44, t);
+            ctx.globalAlpha = 1.0;
+        }
+
+        // particles
+        drawParticles();
+
+        // big rose (after typing done)
+        if (state === 'done' && !yesClicked) {
+            roseActive = true;
+            rosePhase += dt * fadeSpeed;
+        } else if (yesClicked) {
+            roseActive = true;
+            rosePhase += dt * fadeSpeed;
+        } else {
+            roseActive = false;
+        }
+
+        if (roseActive) {
+            let roseOpacity = yesClicked ? 0.3 + 0.2 * Math.sin(rosePhase) : 0.5 + 0.5 * Math.sin(rosePhase);
+            drawBigRose(cx, cy + 120, 120, roseOpacity, t);
+        }
+
+        // if yesClicked, draw eternal glowing particles on top
+        if (yesClicked) {
+            drawEternalParticles();
+        }
+
+        requestAnimationFrame(animate);
+    }
+
+    // start
+    requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>

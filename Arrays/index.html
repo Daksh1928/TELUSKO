@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>I LOVE YOU · polished</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Poppins:wght@300;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-start: #fff7fb;
+        --bg-end: #ffeef6;
+        --card: rgba(255, 255, 255, 0.92);
+        --accent: #c93b5a;
+        --muted: #4b3b3f;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        font-family: Poppins, system-ui, Arial;
+        background: linear-gradient(180deg, var(--bg-start), var(--bg-end));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .wrap {
+        width: 100%;
+        max-width: 980px;
+        padding: 22px;
+        box-sizing: border-box;
+      }
+      .card {
+        position: relative;
+        border-radius: 24px;
+        padding: 18px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.85),
+          rgba(255, 250, 250, 0.65)
+        );
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12);
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 18px;
+        background: transparent;
+      }
+      .proposal {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        bottom: 28px;
+        padding: 12px 26px;
+        border-radius: 40px;
+        background: var(--card);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+        opacity: 0;
+        pointer-events: none;
+        transition: 350ms cubic-bezier(0.2, 0.9, 0.2, 1);
+      }
+      .proposal.show {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateX(-50%) translateY(0);
+      }
+      .proposal h2 {
+        font-family: "Dancing Script", cursive;
+        margin: 0;
+        color: var(--accent);
+        font-size: 36px;
+      }
+      .controls {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-top: 12px;
+      }
+      .btn {
+        padding: 10px 18px;
+        border-radius: 28px;
+        border: 0;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .btn-yes {
+        background: #ff8aa6;
+        color: white;
+      }
+      .btn-no {
+        background: #d19fb0;
+        color: #3b2c32;
+      }
+      .hint {
+        font-size: 13px;
+        color: #6b4a57;
+        text-align: center;
+        margin-top: 10px;
+      }
+      /* eternal overlay */
+      .overlay {
+        position: absolute;
+        inset: 0;
+        border-radius: 18px;
+        background: rgba(20, 6, 12, 0.6);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: 900ms;
+      }
+      .overlay.show {
+        opacity: 1;
+      }
+      .overlay h1 {
+        font-family: "Dancing Script", cursive;
+        color: #ffddeb;
+        font-size: 56px;
+        text-align: center;
+        margin: 0;
+      }
+      .overlay p {
+        color: #ffeef6;
+        letter-spacing: 4px;
+        margin-top: 10px;
+      }
+      @media (max-width: 540px) {
+        .proposal h2 {
+          font-size: 28px;
+        }
+        .overlay h1 {
+          font-size: 36px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap card" id="page">
+      <canvas
+        id="cv"
+        width="900"
+        height="600"
+        aria-label="romantic canvas"
+      ></canvas>
+
+      <div class="proposal" id="proposal">
+        <h2>Will you be mine?</h2>
+        <div class="controls">
+          <button class="btn btn-yes" id="yes">Yes</button>
+          <button class="btn btn-no" id="no">No</button>
+        </div>
+      </div>
+
+      <div class="hint">
+        ✨ Click canvas to spawn a little burst — watch the writing ✨
+      </div>
+
+      <div class="overlay" id="overlay">
+        <h1>I love you<br />until my last breath</h1>
+        <p>∞</p>
+      </div>
+    </div>
+
+    <script>
+      (() => {
+        // CONFIG
+        const BASE_W = 900,
+          BASE_H = 600;
+        const cv = document.getElementById("cv");
+        const ctx = cv.getContext("2d", { alpha: true });
+        const proposalEl = document.getElementById("proposal");
+        const yesBtn = document.getElementById("yes"),
+          noBtn = document.getElementById("no");
+        const overlay = document.getElementById("overlay");
+
+        // Palette (kept romantic)
+        const palette = {
+          bgA: "#fff7fb",
+          bgB: "#ffeef6",
+          accent: "#c93b5a",
+          dark: "#4b3b3f",
+          petal1: "#ffb6c9",
+          petal2: "#ffcfe6",
+          center: "#ffd166",
+        };
+
+        // DPR + responsive
+        function resize() {
+          const max = Math.min(window.innerWidth - 48, BASE_W);
+          const cssW = Math.round(max);
+          const cssH = Math.round(cssW * (BASE_H / BASE_W));
+          cv.style.width = cssW + "px";
+          cv.style.height = cssH + "px";
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          cv.width = BASE_W * dpr;
+          cv.height = BASE_H * dpr;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // keep drawing coords 0..BASE_W
+        }
+        window.addEventListener("resize", resize);
+        resize();
+
+        // Typing / state
+        const lines = ["I", "LOVE", "YOU"];
+        let prog = [0, 0, 0]; // number of chars visible per line
+        let state = 0; // 0 -> top, 1 -> main, 2 -> bottom, 3 -> done
+        let timer = 0;
+        const speed = 4.2; // chars / sec
+
+        // Pen tip for handwriting illusion
+        const pen = {
+          x: BASE_W / 2 - 120,
+          y: BASE_H / 2 - 70,
+          visible: false,
+          sx: 0,
+          sy: 0,
+        };
+
+        // particle pools (recycling)
+        const particles = [];
+        const particlePool = [];
+        for (let i = 0; i < 220; i++) particlePool.push({ alive: false });
+
+        function spawnParticles(x, y, count = 18, spread = 1.0, col = null) {
+          for (let i = 0; i < count; i++) {
+            const p = particlePool.find((p) => !p.alive);
+            if (!p) continue;
+            const a = Math.random() * Math.PI * 2;
+            const speedRand = 40 + Math.random() * 160;
+            p.alive = true;
+            p.x = x + (Math.random() - 0.5) * 18;
+            p.y = y + (Math.random() - 0.5) * 18;
+            p.vx = Math.cos(a) * speedRand * spread;
+            p.vy = Math.sin(a) * speedRand * spread;
+            p.life = 1;
+            p.decay = 0.4 + Math.random() * 0.7;
+            p.size = 2 + Math.random() * 6;
+            p.color =
+              col || (Math.random() > 0.5 ? palette.petal1 : palette.petal2);
+            particles.push(p);
+          }
+        }
+
+        function updateParticles(dt) {
+          for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.vy += 80 * dt; // light gravity
+            p.life -= p.decay * dt;
+            if (p.life <= 0) {
+              p.alive = false;
+              particles.splice(i, 1);
+            }
+          }
+        }
+        function drawParticles() {
+          particles.forEach((p) => {
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, p.life);
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * Math.max(0, p.life), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          });
+        }
+
+        // petals falling (recycled)
+        const PETAL_COUNT = 36;
+        const petals = Array.from({ length: PETAL_COUNT }, () => {
+          return {
+            x: Math.random() * BASE_W,
+            y: Math.random() * BASE_H,
+            vy: 10 + Math.random() * 40,
+            rot: Math.random() * Math.PI * 2,
+            s: 0.6 + Math.random() * 1.1,
+          };
+        });
+        function updatePetals(dt) {
+          for (const p of petals) {
+            p.y += p.vy * dt;
+            p.x += Math.sin(p.y * 0.01 + p.rot) * 8 * dt;
+            p.rot += dt * 0.8;
+            if (p.y > BASE_H + 20) {
+              p.y = -20;
+              p.x = Math.random() * BASE_W;
+            }
+          }
+        }
+        function drawPetals() {
+          for (const p of petals) {
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            ctx.globalAlpha = 0.9;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 6 * p.s, 12 * p.s, 0, 0, Math.PI * 2);
+            ctx.fillStyle =
+              Math.random() > 0.5 ? palette.petal1 : palette.petal2;
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+
+        // corner flowers (cheap draw)
+        function drawCornerClusters(t) {
+          const coords = [
+            [40, 40],
+            [BASE_W - 40, 40],
+            [40, BASE_H - 40],
+            [BASE_W - 40, BASE_H - 40],
+          ];
+          coords.forEach(([x, y], idx) => {
+            ctx.save();
+            ctx.translate(x, y);
+            for (let i = 0; i < 7; i++) {
+              ctx.rotate((Math.PI * 2) / 7);
+              ctx.beginPath();
+              ctx.ellipse(
+                0,
+                10 + Math.sin(t * 2 + idx) * 2,
+                8,
+                18,
+                0,
+                0,
+                Math.PI * 2,
+              );
+              ctx.fillStyle = i % 2 ? palette.petal1 : palette.petal2;
+              ctx.fill();
+            }
+            ctx.beginPath();
+            ctx.arc(0, 0, 7, 0, Math.PI * 2);
+            ctx.fillStyle = palette.center;
+            ctx.fill();
+            ctx.restore();
+          });
+        }
+
+        // vines (draw as bezier with growth param 0..1)
+        function drawVine(x1, y1, x2, y2, t, growth = 1.0, w = 2.4) {
+          const dx = x2 - x1,
+            dy = y2 - y1;
+          const cx1 = x1 + dx * 0.25 + Math.cos(t * 1.6) * 18;
+          const cy1 = y1 + dy * 0.15 + Math.sin(t * 1.3) * 8;
+          const cx2 = x1 + dx * 0.65 + Math.cos(t * 1.9 + 0.9) * 18;
+          const cy2 = y1 + dy * 0.55 + Math.sin(t * 1.7 + 0.6) * 8;
+
+          // draw curve trimmed by growth
+          ctx.save();
+          const g = ctx.createLinearGradient(x1, y1, x2, y2);
+          g.addColorStop(0, "#7bbf8c");
+          g.addColorStop(1, "#2b6b4b");
+          ctx.strokeStyle = g;
+          ctx.lineWidth = w;
+          ctx.lineCap = "round";
+          // sample points along bezier to draw only a portion (approx)
+          const steps = 40;
+          ctx.beginPath();
+          for (let i = 0; i <= steps; i++) {
+            const u = (i / steps) * growth;
+            // cubic bernstein for bezier through control points
+            const b0 = (1 - u) * (1 - u) * (1 - u);
+            const b1 = 3 * (1 - u) * (1 - u) * u;
+            const b2 = 3 * (1 - u) * u * u;
+            const b3 = u * u * u;
+            const px = b0 * x1 + b1 * cx1 + b2 * cx2 + b3 * x2;
+            const py = b0 * y1 + b1 * cy1 + b2 * cy2 + b3 * y2;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.stroke();
+          ctx.restore();
+
+          // small leaves along trimmed vine
+          const leafCount = Math.max(
+            1,
+            Math.floor((Math.hypot(dx, dy) / 120) * growth),
+          );
+          for (let i = 1; i <= leafCount; i++) {
+            const u = (i / (leafCount + 1)) * growth;
+            const b0 = (1 - u) * (1 - u) * (1 - u);
+            const b1 = 3 * (1 - u) * (1 - u) * u;
+            const b2 = 3 * (1 - u) * u * u;
+            const b3 = u * u * u;
+            const px = b0 * x1 + b1 * cx1 + b2 * cx2 + b3 * x2;
+            const py = b0 * y1 + b1 * cy1 + b2 * cy2 + b3 * y2;
+            drawLeaf(
+              px,
+              py,
+              Math.atan2(py - (y1 + dy * u), px - (x1 + dx * u)),
+            );
+          }
+        }
+
+        function drawLeaf(x, y, ang) {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(ang);
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.bezierCurveTo(-8, -6, -22, -6, -36, 0);
+          ctx.bezierCurveTo(-22, 6, -8, 6, 0, 0);
+          ctx.closePath();
+          const g = ctx.createLinearGradient(-36, 0, 0, 0);
+          g.addColorStop(0, "#2b5f3b");
+          g.addColorStop(1, "#7bbf8c");
+          ctx.fillStyle = g;
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // big rose draw (layered petals)
+        function drawBigRose(x, y, R, opacity, t) {
+          ctx.save();
+          ctx.globalAlpha = opacity;
+          for (let layer = 0; layer < 3; layer++) {
+            const count = [8, 12, 18][layer];
+            const scale = [0.5, 0.85, 1.25][layer];
+            const col =
+              layer === 0
+                ? palette.petal2
+                : layer === 1
+                  ? palette.petal1
+                  : palette.accent;
+            for (let i = 0; i < count; i++) {
+              const ang =
+                (i / count) * Math.PI * 2 +
+                layer * 0.18 +
+                Math.sin(t * 0.6 + i) * 0.04;
+              ctx.save();
+              ctx.translate(x, y);
+              ctx.rotate(ang);
+              ctx.beginPath();
+              ctx.ellipse(
+                R * scale * 0.55,
+                0,
+                R * scale * 0.5,
+                R * scale * 0.28,
+                0,
+                0,
+                Math.PI * 2,
+              );
+              ctx.fillStyle = col;
+              ctx.fill();
+              ctx.restore();
+            }
+          }
+          ctx.beginPath();
+          ctx.arc(x, y, R * 0.36, 0, Math.PI * 2);
+          ctx.fillStyle = "#ffe9b3";
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // DRAW TEXT SEGMENT with gentle wave + pen tip target calculation
+        function drawWaveText(text, x, y, size, t) {
+          ctx.save();
+          ctx.font = `700 ${size}px 'Dancing Script', cursive`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          let totalW = ctx.measureText(text).width;
+          // per-character drawing (opaque)
+          let acc = -totalW / 2;
+          for (let i = 0; i < text.length; i++) {
+            const ch = text[i];
+            const cw = ctx.measureText(ch).width;
+            const charX = x + acc + cw / 2;
+            const waveY = Math.sin(t * 2.8 + i * 0.9) * (size * 0.06);
+            ctx.save();
+            ctx.translate(charX, y + waveY);
+            ctx.fillStyle = "#5b2233";
+            ctx.fillText(ch, 0, 0);
+            ctx.restore();
+            acc += cw;
+          }
+          ctx.restore();
+          // compute rough pen target (end of the visible text)
+          return { x: x + (totalW / 2) * 0.0, y }; // we use a simpler pen behavior below
+        }
+
+        // pen-tip drawing (small circle that follows last char)
+        function drawPen(x, y, visible) {
+          if (!visible) return;
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(x + 6, y + 6, 5, 0, Math.PI * 2);
+          ctx.fillStyle = "#2b2b2b";
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // typing detection helpers
+        let lastTime = performance.now() / 1000;
+        let rosePhase = 0;
+        let roseActive = false;
+        let yes = false;
+
+        // spawn small burst when a char appears
+        function onCharReveal(lineIndex, cx, cy) {
+          // place small bursts near where the char appears
+          const baseY = cy + (lineIndex - 1) * 90;
+          const baseX = BASE_W / 2 - (lineIndex === 1 ? 0 : 0); // center
+          spawnParticles(
+            baseX + (Math.random() - 0.5) * 60,
+            baseY + (Math.random() - 0.5) * 18,
+            12,
+            1.0,
+          );
+        }
+
+        // canvas click: small burst
+        cv.addEventListener("pointerdown", (ev) => {
+          const rect = cv.getBoundingClientRect();
+          // map css coords to base coords
+          const cx = ((ev.clientX - rect.left) / rect.width) * BASE_W;
+          const cy = ((ev.clientY - rect.top) / rect.height) * BASE_H;
+          spawnParticles(cx, cy, 22, 1.2);
+        });
+
+        // proposal control
+        yesBtn.addEventListener("click", () => {
+          yes = true;
+          proposalEl = proposalEl; // silence linter
+          proposalEl = document.getElementById("proposal"); // ensure reference
+          document.getElementById("proposal").classList.remove("show");
+          overlay.classList.add("show");
+          // joyful bursts
+          for (let i = 0; i < 30; i++) {
+            setTimeout(
+              () =>
+                spawnParticles(
+                  BASE_W / 2 + (Math.random() - 0.5) * 200,
+                  BASE_H / 2 + (Math.random() - 0.5) * 160,
+                  18,
+                ),
+              i * 35,
+            );
+          }
+        });
+        noBtn.addEventListener("click", () => {
+          noBtn.textContent = "😢";
+          noBtn.disabled = true;
+        });
+
+        // show proposal once done
+        function updateTyping(dt, t) {
+          timer += dt;
+          if (state <= 2) {
+            const current = lines[state];
+            const newCount = Math.min(
+              current.length,
+              Math.floor(timer * speed),
+            );
+            if (newCount > prog[state]) {
+              // reveal event(s)
+              for (let c = prog[state]; c < newCount; c++) {
+                onCharReveal(state, BASE_W / 2, BASE_H / 2);
+              }
+              prog[state] = newCount;
+            }
+            if (prog[state] >= current.length) {
+              // advance after short pause
+              if (timer * speed > current.length + 0.6) {
+                state++;
+                timer = 0;
+              }
+            }
+            if (state > 2) {
+              state = 3; // done
+              // reveal proposal if not clicked yes
+              if (!yes)
+                document.getElementById("proposal").classList.add("show");
+            }
+          }
+        }
+
+        // main loop
+        function frame(now) {
+          const t = now / 1000;
+          const dt = Math.min(0.05, t - lastTime);
+          lastTime = t;
+
+          // update
+          updateParticles(dt);
+          updatePetals(dt);
+          updateTyping(dt, t);
+
+          // draw
+          // background gradient
+          const g = ctx.createLinearGradient(0, 0, 0, BASE_H);
+          g.addColorStop(0, palette.bgA);
+          g.addColorStop(1, palette.bgB);
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, BASE_W, BASE_H);
+
+          // vines (gentle growth)
+          const cx = BASE_W / 2,
+            cy = BASE_H / 2;
+          // growth parameter derived from overall typing progress:
+          const totalChars = lines.reduce((s, l) => s + l.length, 0);
+          const revealed = prog[0] + prog[1] + prog[2];
+          const growth = Math.min(1, revealed / totalChars);
+          drawVine(
+            120,
+            100,
+            cx - 120,
+            cy + 72,
+            t,
+            Math.min(1, growth * 1.2),
+            3,
+          );
+          drawVine(
+            BASE_W - 120,
+            100,
+            cx + 120,
+            cy + 72,
+            t,
+            Math.min(1, growth * 1.2),
+            3,
+          );
+          drawVine(
+            160,
+            BASE_H - 120,
+            cx - 60,
+            cy + 160,
+            t,
+            Math.min(1, growth * 0.9),
+            2.2,
+          );
+          drawVine(
+            BASE_W - 160,
+            BASE_H - 120,
+            cx + 60,
+            cy + 160,
+            t,
+            Math.min(1, growth * 0.9),
+            2.2,
+          );
+
+          // corner clusters
+          drawCornerClusters(t);
+
+          // petals (behind text)
+          drawPetals();
+
+          // text
+          if (prog[0] > 0)
+            drawWaveText(
+              lines[0].slice(0, prog[0]),
+              BASE_W / 2,
+              BASE_H / 2 - 70,
+              44,
+              t,
+            );
+          if (prog[1] > 0)
+            drawWaveText(
+              lines[1].slice(0, prog[1]),
+              BASE_W / 2,
+              BASE_H / 2,
+              86,
+              t,
+            );
+          if (prog[2] > 0)
+            drawWaveText(
+              lines[2].slice(0, prog[2]),
+              BASE_W / 2,
+              BASE_H / 2 + 90,
+              44,
+              t,
+            );
+
+          // pen tip: show near current writing location (approx)
+          const lastVisibleLine = Math.min(
+            2,
+            prog[2] > 0 ? 2 : prog[1] > 0 ? 1 : 0,
+          );
+          // compute pen coordinates roughly based on center and progress
+          const ptY = BASE_H / 2 + (lastVisibleLine - 1) * 90;
+          const ptX =
+            BASE_W / 2 +
+            (prog[lastVisibleLine] - lines[lastVisibleLine].length / 2) * 18;
+          drawPen(ptX, ptY, state < 3);
+
+          // particles on top of text
+          drawParticles();
+
+          // big rose under text (when done)
+          if (state === 3 && !yes) {
+            rosePhase += dt * 2.2;
+            const op = 0.55 + 0.45 * Math.sin(rosePhase * 0.9);
+            drawBigRose(BASE_W / 2, BASE_H / 2 + 160, 110, op, t);
+          }
+
+          // overlay eternal particles when yes
+          if (yes) {
+            // draw soft glow + small rising bits (cheap)
+            ctx.save();
+            ctx.globalCompositeOperation = "lighter";
+            for (let i = 0; i < 60; i++) {
+              const xx =
+                BASE_W / 2 + Math.sin(t * 0.7 + i) * (120 + Math.sin(i) * 20);
+              const yy = BASE_H * 0.45 - ((t * 6) % 400) + i * 6;
+              ctx.globalAlpha = 0.06 + Math.abs(Math.sin(t + i)) * 0.06;
+              ctx.fillStyle = palette.petal2;
+              ctx.beginPath();
+              ctx.arc(
+                xx,
+                ((yy % BASE_H) + BASE_H) % BASE_H,
+                2 + (i % 6) * 0.1,
+                0,
+                Math.PI * 2,
+              );
+              ctx.fill();
+            }
+            ctx.restore();
+          }
+
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+
+        // initial particle burst so composition feels alive
+        spawnParticles(BASE_W / 2, BASE_H / 2, 32, 1.0);
+
+        // small helper tests (manual)
+        // 1) page loads with no console errors
+        // 2) typing shows I -> LOVE -> YOU
+        // 3) clicking canvas spawns a particle burst
+        // 4) proposal appears after typing and yes triggers overlay
+      })();
+    </script>
+  </body>
+</html>
